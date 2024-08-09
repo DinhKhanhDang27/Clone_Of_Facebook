@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0; /* Màu xám nền */
+            display: flex;
+            height: 100vh;
+            justify-content: center; /* Căn giữa các phần */
+            align-items: center;
+        }
+        .container {
+            display: flex;
+            width: 80%; /* Điều chỉnh chiều rộng container để thu hẹp khoảng cách */
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8); /* Nền trắng với độ trong suốt */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Thêm hiệu ứng bóng cho container */
+        }
+        .text-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .text-section h1 {
+            color: #00f; /* Màu xanh da trời */
+            font-weight: bold;
+            font-size: 3rem; /* Kích thước chữ lớn hơn */
+            margin: 0; /* Xóa margin để chữ nằm sát với lề */
+        }
+        .login-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 20px;
+            background: white; /* Nền trắng cho khung đăng nhập */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Thêm hiệu ứng bóng cho khung đăng nhập */
+        }
+        .login-section input,
+        .login-section button {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .login-section button {
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold; /* Bold chữ trên button */
+        }
+        .login-section button.login-button {
+            background-color: #6b6bff; /* Màu xanh da trời */
+            color: white;
+        }
+        .login-section button.register-button {
+            background-color: #12c112; /* Màu xanh lá */
+            color: white;
+        }
+        .forgot-password {
+            text-align: right;
+            font-weight: bold; /* Bold chữ trên link quên mật khẩu */
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="text-section">
+        <h1>Welcome to Facebook</h1>
+    </div>
+    <div class="login-section">
+        <form action="#" method="post">
+            <label>
+                <input type="text" name="username" placeholder="Username" required>
+            </label>
+            <label>
+                <input type="password" name="password" placeholder="Password" required>
+            </label>
+            <div class="forgot-password">
+                <a href="#">Forgot password?</a>
+            </div>
+            <button type="submit" class="login-button">Login</button>
+            <button type="submit" class="register-button">Register</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
