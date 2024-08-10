@@ -1,0 +1,136 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Log in!{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        body {
+            background-color: #f0f0f0; /* Gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 50px; /* Add some margin to the right for the image */
+        }
+        .login-form {
+            width: 100%;
+        }
+        .login-form h1 {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .login-form label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .login-form input {
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding: 10px;
+            width: calc(100% - 22px);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .login-form button {
+            font-weight: bold;
+            background-color: #00aaff; /* Sky blue */
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .login-form button:hover {
+            background-color: #0099e0;
+        }
+        .login-form a {
+            color: #00aaff;
+            text-decoration: none;
+        }
+        .login-form a:hover {
+            color: #0099e0;
+        }
+        .register-btn {
+            margin-top: 10px;
+            font-weight: bold;
+            background-color: #00aaff; /* Sky blue */
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            width: 100%;
+        }
+        .register-btn:hover {
+            background-color: #0099e0;
+        }
+        .image-container {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <form method="post" class="login-form">
+            {% if error %}
+                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+
+            {% if app.user %}
+                <div class="mb-3">
+                    You are logged in as {{ app.user.userIdentifier }}, <a href="{{ path('app_logout') }}">Logout</a>
+                </div>
+            {% else %}
+                <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+                <label for="username">Email</label>
+                <input type="email" value="{{ last_username }}" name="_username" id="username" class="form-control" autocomplete="email" required autofocus>
+                <label for="password">Password</label>
+                <input type="password" name="_password" id="password" class="form-control" autocomplete="current-password" required>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                {#
+                Uncomment this section and add a remember_me option below your firewall to activate remember me functionality.
+                See https://symfony.com/doc/current/security/remember_me.html
+
+                <div class="checkbox mb-3">
+                    <input type="checkbox" name="_remember_me" id="_remember_me">
+                    <label for="_remember_me">Remember me</label>
+                </div>
+                #}
+
+                <button class="btn btn-lg btn-primary" type="submit">
+                    Sign in
+                </button>
+            {% endif %}
+        </form>
+        <a href="{{ path('app_register') }}" class="register-btn">
+            Register
+        </a>
+    </div>
+
+    <div class="image-container">
+        <a href="https://static.xx.fbcdn.net/rsrc.php/y1/r/4lCu2zih0ca.svg">
+            <img src="https://static.xx.fbcdn.net/rsrc.php/y1/r/4lCu2zih0ca.svg" alt="Facebook Logo" style="height: 80px;">
+        </a>
+    </div>
+{% endblock %}

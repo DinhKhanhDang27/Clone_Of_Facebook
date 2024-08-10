@@ -16,6 +16,19 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                enable_csrf: true
+                #default_target_path: user_profile  # Redirect to user_profile after login
+                        # Optionally you can also specify the target path after successful login:
+                default_target_path: /profile/{id}
+            logout:
+                path: app_logout
+                # where to redirect after logout
+                # target: app_any_route
+                # where to redirect after logout
+                # target: app_any_route
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#the-firewall

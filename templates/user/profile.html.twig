@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="{{ asset('css/profile.css') }}">
+</head>
+<body>
+<div class="profile-container">
+    <div class="cover-photo">
+        {% if user.coverPhoto %}
+            <img src="{{ asset('uploads/cover_photos/' ~ user.coverPhoto) }}" alt="Cover Photo">
+        {% else %}
+            <div class="cover-photo-placeholder">
+                <span>No Cover Photo</span>
+                <form action="{{ path('user_edit', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="cover_photo" id="cover_photo" />
+                    <button type="submit">Update Cover Photo</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+    <div class="profile-content">
+        <div class="profile-header">
+            {% if user.profilePicture %}
+                <img class="profile-picture" src="{{ asset('uploads/profile_pictures/' ~ user.profilePicture) }}" alt="Profile Picture">
+            {% else %}
+                <div class="profile-picture-placeholder">
+                    <span>No Profile Picture</span>
+                    <form action="{{ path('user_edit', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
+                        <input type="file" name="profile_picture" id="profile_picture" />
+                        <button type="submit">Update Profile Picture</button>
+                    </form>
+                </div>
+            {% endif %}
+            <h1>{{ user.name }}</h1>
+
+            <!-- Logout Button -->
+            <form action="{{ path('app_logout') }}" method="post" style="margin-top: 10px;">
+                <button type="submit" class="btn btn-secondary">Logout</button>
+            </form>
+        </div>
+        <div class="about-section">
+            <h2><strong>About</strong></h2>
+            <ul>
+                <li><strong>Email:</strong> {{ user.email }}</li>
+                <li><strong>Age:</strong> {{ user.age }}</li>
+                <li><strong>Phone:</strong> {{ user.phonenumber }}</li>
+                <li><strong>Relationship Status:</strong> {{ user.relationshipStatus }}</li>
+                <li><strong>Work:</strong> {{ user.work }}</li>
+                <li><strong>Education:</strong> {{ user.education }}</li>
+                <li><strong>Contact Info:</strong> {{ user.contactInfo }}</li>
+                <li><strong>About:</strong> {{ user.about }}</li>
+            </ul>
+        </div>
+        <a href="{{ path('user_edit', { id: user.id }) }}" class="edit-profile">Edit Profile</a>
+    </div>
+
+    <!-- Status Update Section -->
+    <div class="status-update">
+        <h2><strong>Update Status</strong></h2>
+        <form action="{{ path('user_update_status', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
+            <textarea name="status_text" rows="4" placeholder="What's on your mind?">{{ user.statusText }}</textarea>
+            <input type="file" name="status_image" accept="image/*" />
+            <button type="submit">Post Status</button>
+        </form>
+    </div>
+
+    <!-- Display User Status -->
+    <div class="user-status">
+        {% if user.statusText %}
+            <div class="status-text">
+                <p>{{ user.statusText }}</p>
+                {% if user.statusImage %}
+                    <img src="{{ asset('uploads/status_images/' ~ user.statusImage) }}" alt="Status Image">
+                {% endif %}
+            </div>
+        {% else %}
+            <p>No status update yet.</p>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

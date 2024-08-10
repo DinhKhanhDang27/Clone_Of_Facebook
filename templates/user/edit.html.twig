@@ -1,0 +1,38 @@
+{# templates/user/edit.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block body %}
+    <h1>Edit Profile</h1>
+
+    <form action="{{ path('user_edit', { id: user.id }) }}" method="post" enctype="multipart/form-data">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" value="{{ user.name }}" required />
+
+        <label for="relationship_status">Relationship Status:</label>
+        <input type="text" id="relationship_status" name="relationship_status" value="{{ user.relationshipStatus }}" />
+
+        <label for="work">Work:</label>
+        <input type="text" id="work" name="work" value="{{ user.work }}" />
+
+        <label for="education">Education:</label>
+        <input type="text" id="education" name="education" value="{{ user.education }}" />
+
+        <label for="contact_info">Contact Info:</label>
+        <input type="text" id="contact_info" name="contact_info" value="{{ user.contactInfo }}" />
+
+        <label for="about">About:</label>
+        <textarea id="about" name="about">{{ user.about }}</textarea>
+
+        <label for="profile_picture">Profile Picture:</label>
+        <input type="file" id="profile_picture" name="profile_picture" />
+
+        <label for="cover_photo">Cover Photo:</label>
+        <input type="file" id="cover_photo" name="cover_photo" />
+
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <a href="{{ path('user_profile', { id: user.id }) }}">Back to Profile</a>
+{% endblock %}
