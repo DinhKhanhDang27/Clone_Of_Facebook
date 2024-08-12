@@ -36,12 +36,12 @@
                     <img class="status-image" src="{{ asset('uploads/status_images/' ~ status.image) }}" alt="Status Image">
                 {% endif %}
                 <small>Posted on: {{ status.createdAt|date('Y-m-d H:i:s') }}</small>
-            </div>
-            <div class="like-container">
-                <button class="btn-like">
-                    <img src="{{ asset('uploads/system_photos/like.png') }}" alt="Like">
-                </button>
-                <span class="like-count">{{ status.likes }}</span>
+                <div class="like-container">
+                    <button class="btn-like">
+                        <img src="{{ asset('uploads/system_photos/like.png') }}" alt="Like">
+                    </button>
+                    <span class="like-count">{{ status.likes }}</span>
+                </div>
             </div>
         </div>
     {% else %}
