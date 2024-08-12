@@ -9,7 +9,12 @@ body {
     margin-bottom: 20px;
 }
 
-.btn-logout {
+.profile-container {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.btn-logout, .btn-my-profile, .btn-profile {
     background-color: #007bff;
     color: #fff;
     border: none;
@@ -17,9 +22,10 @@ body {
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
+    text-decoration: none;
 }
 
-.btn-logout:hover {
+.btn-logout:hover, .btn-my-profile:hover, .btn-profile:hover {
     background-color: #0056b3;
 }
 
@@ -65,14 +71,12 @@ body {
     max-width: 100%; /* Ensure it doesn’t exceed the width of its container */
 }
 
-
 .status-content p {
     margin: 0;
     word-wrap: break-word; /* Ensure text wraps within its container */
     overflow-wrap: break-word; /* Additional handling for very long words */
     word-break: break-all; /* Break long words or strings */
 }
-
 
 .status-image {
     max-width: 80%; /* Ensure image does not exceed container width */
@@ -86,6 +90,7 @@ body {
     margin-top: 10px;
     color: #666;
 }
+
 .btn-profile {
     display: inline-block;
     background-color: #28a745; /* Green color for the button */

@@ -12,6 +12,9 @@
         <button type="submit" class="btn-logout">Logout</button>
     </form>
 </div>
+<div class="profile-container">
+    <a href="{{ path('user_profile', { id: app.user.id }) }}" class="btn-my-profile">My Profile</a>
+</div>
 <div class="status-container">
     {% for status in statuses %}
         <div class="status-item">
