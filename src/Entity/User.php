@@ -8,6 +8,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -73,6 +75,43 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     private ?string $statusImage = null;
 
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Status::class)]
+    private Collection $statuses;
+
+    public function __construct()
+    {
+        $this->statuses = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection|Status[]
+     */
+    public function getStatuses(): Collection
+    {
+        return $this->statuses;
+    }
+
+    public function addStatus(Status $status): static
+    {
+        if (!$this->statuses->contains($status)) {
+            $this->statuses[] = $status;
+            $status->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeStatus(Status $status): static
+    {
+        if ($this->statuses->removeElement($status)) {
+            // set the owning side to null (unless already changed)
+            if ($status->getUser() === $this) {
+                $status->setUser(null);
+            }
+        }
+
+        return $this;
+    }
     public function getId(): ?int
     {
         return $this->id;

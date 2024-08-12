@@ -14,10 +14,6 @@
         {% else %}
             <div class="cover-photo-placeholder">
                 <span>No Cover Photo</span>
-                <form action="{{ path('user_edit', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
-                    <input type="file" name="cover_photo" id="cover_photo" />
-                    <button type="submit">Update Cover Photo</button>
-                </form>
             </div>
         {% endif %}
     </div>
@@ -28,10 +24,6 @@
             {% else %}
                 <div class="profile-picture-placeholder">
                     <span>No Profile Picture</span>
-                    <form action="{{ path('user_edit', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
-                        <input type="file" name="profile_picture" id="profile_picture" />
-                        <button type="submit">Update Profile Picture</button>
-                    </form>
                 </div>
             {% endif %}
             <h1>{{ user.name }}</h1>
@@ -61,7 +53,9 @@
     <div class="status-update">
         <h2><strong>Update Status</strong></h2>
         <form action="{{ path('user_update_status', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
-            <textarea name="status_text" rows="4" placeholder="What's on your mind?">{{ user.statusText }}</textarea>
+            <label>
+                <textarea name="status_text" rows="4" placeholder="What's on your mind?"></textarea>
+            </label>
             <input type="file" name="status_image" accept="image/*" />
             <button type="submit">Post Status</button>
         </form>
@@ -69,16 +63,17 @@
 
     <!-- Display User Status -->
     <div class="user-status">
-        {% if user.statusText %}
+        {% for status in user.statuses %}
             <div class="status-text">
-                <p>{{ user.statusText }}</p>
-                {% if user.statusImage %}
-                    <img src="{{ asset('uploads/status_images/' ~ user.statusImage) }}" alt="Status Image">
+                <p>{{ status.content }}</p>
+                {% if status.image %}
+                    <img src="{{ asset('uploads/status_images/' ~ status.image) }}" alt="Status Image">
                 {% endif %}
+                <small>Posted on: {{ status.createdAt|date('Y-m-d H:i:s') }}</small>
             </div>
         {% else %}
-            <p>No status update yet.</p>
-        {% endif %}
+            <p>No status updates yet.</p>
+        {% endfor %}
     </div>
 </div>
 </body>

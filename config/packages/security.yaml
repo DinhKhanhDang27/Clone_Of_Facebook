@@ -39,8 +39,15 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        # Cho phép người dùng đã đăng nhập truy cập vào tất cả các trang cá nhân
+        - { path: ^/profile/.*, roles: ROLE_USER }
+
+        # Chỉ cho phép người dùng truy cập trang chỉnh sửa trang cá nhân của chính mình
+        - { path: ^/profile/edit/(?P<id>\d+)$, roles: ROLE_USER, allow_if: "user.getId() == id" }
+
+        # Các quy tắc khác nếu cần
+        - { path: ^/profile/update-status/.*, roles: ROLE_USER, allow_if: "user.getId() == id" }
+    # Chặn quyền truy cập đối với các route không được phép
 
 when@test:
     security:

@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use App\Entity\Status;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +27,9 @@ class UserController extends AbstractController
     #[Route('/profile/edit/{id}', name: 'user_edit')]
     public function edit(Request $request, User $user, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
+        if ($this->getUser()->getId() !== $user->getId()) {
+            throw new AccessDeniedException('You do not have permission to edit this profile.');
+        }
         if ($request->isMethod('POST')) {
             $name = $request->request->get('name');
             if (!$name) {
@@ -90,8 +95,20 @@ class UserController extends AbstractController
     // src/Controller/UserController.php
 
     #[Route('/profile/update-status/{id}', name: 'user_update_status')]
-    public function updateStatus(Request $request, User $user, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
+    public function updateStatus(int $id, Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
+        // Tìm user theo id
+        $user = $entityManager->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            throw $this->createNotFoundException('User not found.');
+        }
+
+        // Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu của hồ sơ này không
+        if ($this->getUser()->getId() !== $user->getId()) {
+            throw new AccessDeniedException('You do not have permission to edit this profile.');
+        }
+
         if ($request->isMethod('POST')) {
             $statusText = $request->request->get('status_text');
             if (!$statusText) {
@@ -99,7 +116,12 @@ class UserController extends AbstractController
                 return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);
             }
 
-            // Xử lý ảnh trạng thái
+            $status = new Status();
+            $status->setUser($user);
+            $status->setContent($statusText);
+            $status->setCreatedAt(new \DateTime());
+            $status->setUpdatedAt(new \DateTime());
+
             /** @var UploadedFile $statusImage */
             $statusImage = $request->files->get('status_image');
             if ($statusImage) {
@@ -112,13 +134,10 @@ class UserController extends AbstractController
                     $newFilename
                 );
 
-                $user->setStatusImage($newFilename);
+                $status->setImage($newFilename);
             }
 
-            // Cập nhật trạng thái người dùng
-            $user->setStatusText($statusText);
-
-            $entityManager->persist($user);
+            $entityManager->persist($status);
             $entityManager->flush();
 
             return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);
@@ -126,6 +145,4 @@ class UserController extends AbstractController
 
         return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);
     }
-
-
 }
