@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Everything</title>
     <link rel="stylesheet" href="{{ asset('css/view_everything.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body style="background-color: #f0f0f0; padding: 20px;">
+<body>
 <div class="logout-container">
     <form action="{{ path('app_logout') }}" method="post">
         <button type="submit" class="btn-logout">Logout</button>
@@ -17,15 +18,17 @@
 </div>
 <div class="status-container">
     {% for status in statuses %}
-        <div class="status-item">
+        <div class="status-item" data-status-id="{{ status.id }}">
             <div class="status-profile">
                 {% if status.user.profilePicture %}
                     <img class="profile-picture" src="{{ asset('uploads/profile_pictures/' ~ status.user.profilePicture) }}" alt="Profile Picture">
                 {% else %}
                     <div class="profile-picture-placeholder">No Profile Picture</div>
                 {% endif %}
-                <a href="{{ path('user_profile', { id: status.user.id }) }}" class="btn-profile">View Profile</a>
-                <div class="profile-name">{{ status.user.name }}</div>
+                <div class="profile-info">
+                    <div class="profile-name">{{ status.user.name }}</div>
+                    <a href="{{ path('user_profile', { id: status.user.id }) }}" class="btn-profile">View Profile</a>
+                </div>
             </div>
             <div class="status-content">
                 <p>{{ status.content }}</p>
@@ -34,10 +37,32 @@
                 {% endif %}
                 <small>Posted on: {{ status.createdAt|date('Y-m-d H:i:s') }}</small>
             </div>
+            <div class="like-container">
+                <button class="btn-like">
+                    <img src="{{ asset('uploads/system_photos/like.png') }}" alt="Like">
+                </button>
+                <span class="like-count">{{ status.likes }}</span>
+            </div>
         </div>
     {% else %}
         <p>No statuses available.</p>
     {% endfor %}
 </div>
+<script>
+    $(document).ready(function(){
+        $('.btn-like').click(function(){
+            var statusId = $(this).closest('.status-item').data('status-id');
+            var likeCountElement = $(this).siblings('.like-count');
+            $.ajax({
+                url: '{{ path('like_status') }}',
+                method: 'POST',
+                data: { id: statusId },
+                success: function(response) {
+                    likeCountElement.text(response.likes);
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>
