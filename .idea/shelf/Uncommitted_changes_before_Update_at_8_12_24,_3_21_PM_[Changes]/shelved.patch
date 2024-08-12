@@ -1,0 +1,361 @@
+Index: config/packages/security.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>security:\n    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords\n    password_hashers:\n        Symfony\\Component\\Security\\Core\\User\\PasswordAuthenticatedUserInterface: 'auto'\n    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider\n    providers:\n        # used to reload user from session & other features (e.g. switch_user)\n        app_user_provider:\n            entity:\n                class: App\\Entity\\User\n                property: email\n    firewalls:\n        dev:\n            pattern: ^/(_(profiler|wdt)|css|images|js)/\n            security: false\n        main:\n            lazy: true\n            provider: app_user_provider\n            form_login:\n                login_path: app_login\n                check_path: app_login\n                enable_csrf: true\n                #default_target_path: user_profile  # Redirect to user_profile after login\n                        # Optionally you can also specify the target path after successful login:\n                default_target_path: /profile/{id}\n            logout:\n                path: app_logout\n                # where to redirect after logout\n                # target: app_any_route\n                # where to redirect after logout\n                # target: app_any_route\n\n            # activate different ways to authenticate\n            # https://symfony.com/doc/current/security.html#the-firewall\n\n            # https://symfony.com/doc/current/security/impersonating_user.html\n            # switch_user: true\n\n    # Easy way to control access for large sections of your site\n    # Note: Only the *first* access control that matches will be used\n    access_control:\n        # Cho phép người dùng đã đăng nhập truy cập vào tất cả các trang cá nhân\n        - { path: ^/profile/.*, roles: ROLE_USER }\n\n        # Chỉ cho phép người dùng truy cập trang chỉnh sửa trang cá nhân của chính mình\n        - { path: ^/profile/edit/(?P<id>\\d+)$, roles: ROLE_USER, allow_if: \"user.getId() == id\" }\n\n        # Các quy tắc khác nếu cần\n        - { path: ^/profile/update-status/.*, roles: ROLE_USER, allow_if: \"user.getId() == id\" }\n    # Chặn quyền truy cập đối với các route không được phép\n\nwhen@test:\n    security:\n        password_hashers:\n            # By default, password hashers are resource intensive and take time. This is\n            # important to generate secure password hashes. In tests however, secure hashes\n            # are not important, waste resources and increase test times. The following\n            # reduces the work factor to the lowest possible values.\n            Symfony\\Component\\Security\\Core\\User\\PasswordAuthenticatedUserInterface:\n                algorithm: auto\n                cost: 4 # Lowest possible value for bcrypt\n                time_cost: 3 # Lowest possible value for argon\n                memory_cost: 10 # Lowest possible value for argon\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/config/packages/security.yaml b/config/packages/security.yaml
+--- a/config/packages/security.yaml	(revision b17398b9cd72377688424d4338a8754807977b5b)
++++ b/config/packages/security.yaml	(date 1723450838958)
+@@ -39,15 +39,8 @@
+     # Easy way to control access for large sections of your site
+     # Note: Only the *first* access control that matches will be used
+     access_control:
+-        # Cho phép người dùng đã đăng nhập truy cập vào tất cả các trang cá nhân
+-        - { path: ^/profile/.*, roles: ROLE_USER }
+-
+-        # Chỉ cho phép người dùng truy cập trang chỉnh sửa trang cá nhân của chính mình
+-        - { path: ^/profile/edit/(?P<id>\d+)$, roles: ROLE_USER, allow_if: "user.getId() == id" }
+-
+-        # Các quy tắc khác nếu cần
+-        - { path: ^/profile/update-status/.*, roles: ROLE_USER, allow_if: "user.getId() == id" }
+-    # Chặn quyền truy cập đối với các route không được phép
++        # - { path: ^/admin, roles: ROLE_ADMIN }
++        # - { path: ^/profile, roles: ROLE_USER }
+ 
+ when@test:
+     security:
+Index: src/Controller/UserController.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?php\n\nnamespace App\\Controller;\n\nuse Symfony\\Component\\Security\\Core\\Exception\\AccessDeniedException;\nuse App\\Entity\\Status;\nuse App\\Entity\\User;\nuse App\\Repository\\UserRepository;\nuse Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController;\nuse Symfony\\Component\\HttpFoundation\\Request;\nuse Symfony\\Component\\HttpFoundation\\Response;\nuse Symfony\\Component\\Routing\\Annotation\\Route;\nuse Symfony\\Component\\HttpFoundation\\File\\UploadedFile;\nuse Symfony\\Component\\String\\Slugger\\SluggerInterface;\nuse Doctrine\\ORM\\EntityManagerInterface;\n\nclass UserController extends AbstractController\n{\n    #[Route('/profile/{id}', name: 'user_profile')]\n    public function profile(User $user): Response\n    {\n        return $this->render('user/profile.html.twig', [\n            'user' => $user,\n        ]);\n    }\n\n    #[Route('/profile/edit/{id}', name: 'user_edit')]\n    public function edit(Request $request, User $user, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response\n    {\n        if ($this->getUser()->getId() !== $user->getId()) {\n            throw new AccessDeniedException('You do not have permission to edit this profile.');\n        }\n        if ($request->isMethod('POST')) {\n            $name = $request->request->get('name');\n            if (!$name) {\n                // Nếu trường name rỗng, thêm thông báo lỗi hoặc xử lý thích hợp\n                $this->addFlash('error', 'Name cannot be empty.');\n                return $this->redirectToRoute('user_edit', ['id' => $user->getId()]);\n            }\n\n            $user->setName($name);\n            $user->setRelationshipStatus($request->request->get('relationship_status'));\n            $user->setWork($request->request->get('work'));\n            $user->setEducation($request->request->get('education'));\n            $user->setContactInfo($request->request->get('contact_info'));\n            $user->setAbout($request->request->get('about'));\n\n            // Xử lý ảnh đại diện\n            /** @var UploadedFile $profilePicture */\n            $profilePicture = $request->files->get('profile_picture');\n            if ($profilePicture) {\n                $originalFilename = pathinfo($profilePicture->getClientOriginalName(), PATHINFO_FILENAME);\n                $safeFilename = $slugger->slug($originalFilename);\n                $newFilename = $safeFilename . '-' . uniqid() . '.' . $profilePicture->guessExtension();\n\n                $profilePicture->move(\n                    $this->getParameter('profile_pictures_directory'),\n                    $newFilename\n                );\n\n                $user->setProfilePicture($newFilename);\n            }\n\n            // Xử lý ảnh bìa\n            /** @var UploadedFile $coverPhoto */\n            $coverPhoto = $request->files->get('cover_photo');\n            if ($coverPhoto) {\n                $originalFilename = pathinfo($coverPhoto->getClientOriginalName(), PATHINFO_FILENAME);\n                $safeFilename = $slugger->slug($originalFilename);\n                $newFilename = $safeFilename . '-' . uniqid() . '.' . $coverPhoto->guessExtension();\n\n                $coverPhoto->move(\n                    $this->getParameter('cover_photos_directory'),\n                    $newFilename\n                );\n\n                $user->setCoverPhoto($newFilename);\n            }\n\n            $user->setUpdatedAt(new \\DateTime());\n\n            // Lưu thay đổi vào cơ sở dữ liệu\n            $entityManager->persist($user);\n            $entityManager->flush();\n\n            return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);\n        }\n\n        return $this->render('user/edit.html.twig', [\n            'user' => $user,\n        ]);\n    }\n    // Thêm vào UserController.php\n\n    // src/Controller/UserController.php\n\n    #[Route('/profile/update-status/{id}', name: 'user_update_status')]\n    public function updateStatus(int $id, Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response\n    {\n        // Tìm user theo id\n        $user = $entityManager->getRepository(User::class)->find($id);\n\n        if (!$user) {\n            throw $this->createNotFoundException('User not found.');\n        }\n\n        // Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu của hồ sơ này không\n        if ($this->getUser()->getId() !== $user->getId()) {\n            throw new AccessDeniedException('You do not have permission to edit this profile.');\n        }\n\n        if ($request->isMethod('POST')) {\n            $statusText = $request->request->get('status_text');\n            if (!$statusText) {\n                $this->addFlash('error', 'Status text cannot be empty.');\n                return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);\n            }\n\n            $status = new Status();\n            $status->setUser($user);\n            $status->setContent($statusText);\n            $status->setCreatedAt(new \\DateTime());\n            $status->setUpdatedAt(new \\DateTime());\n\n            /** @var UploadedFile $statusImage */\n            $statusImage = $request->files->get('status_image');\n            if ($statusImage) {\n                $originalFilename = pathinfo($statusImage->getClientOriginalName(), PATHINFO_FILENAME);\n                $safeFilename = $slugger->slug($originalFilename);\n                $newFilename = $safeFilename . '-' . uniqid() . '.' . $statusImage->guessExtension();\n\n                $statusImage->move(\n                    $this->getParameter('status_images_directory'),\n                    $newFilename\n                );\n\n                $status->setImage($newFilename);\n            }\n\n            $entityManager->persist($status);\n            $entityManager->flush();\n\n            return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);\n        }\n\n        return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Controller/UserController.php b/src/Controller/UserController.php
+--- a/src/Controller/UserController.php	(revision b17398b9cd72377688424d4338a8754807977b5b)
++++ b/src/Controller/UserController.php	(date 1723450845546)
+@@ -2,8 +2,6 @@
+ 
+ namespace App\Controller;
+ 
+-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+-use App\Entity\Status;
+ use App\Entity\User;
+ use App\Repository\UserRepository;
+ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+@@ -27,9 +25,6 @@
+     #[Route('/profile/edit/{id}', name: 'user_edit')]
+     public function edit(Request $request, User $user, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
+     {
+-        if ($this->getUser()->getId() !== $user->getId()) {
+-            throw new AccessDeniedException('You do not have permission to edit this profile.');
+-        }
+         if ($request->isMethod('POST')) {
+             $name = $request->request->get('name');
+             if (!$name) {
+@@ -95,20 +90,8 @@
+     // src/Controller/UserController.php
+ 
+     #[Route('/profile/update-status/{id}', name: 'user_update_status')]
+-    public function updateStatus(int $id, Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
++    public function updateStatus(Request $request, User $user, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
+     {
+-        // Tìm user theo id
+-        $user = $entityManager->getRepository(User::class)->find($id);
+-
+-        if (!$user) {
+-            throw $this->createNotFoundException('User not found.');
+-        }
+-
+-        // Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu của hồ sơ này không
+-        if ($this->getUser()->getId() !== $user->getId()) {
+-            throw new AccessDeniedException('You do not have permission to edit this profile.');
+-        }
+-
+         if ($request->isMethod('POST')) {
+             $statusText = $request->request->get('status_text');
+             if (!$statusText) {
+@@ -116,12 +99,7 @@
+                 return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);
+             }
+ 
+-            $status = new Status();
+-            $status->setUser($user);
+-            $status->setContent($statusText);
+-            $status->setCreatedAt(new \DateTime());
+-            $status->setUpdatedAt(new \DateTime());
+-
++            // Xử lý ảnh trạng thái
+             /** @var UploadedFile $statusImage */
+             $statusImage = $request->files->get('status_image');
+             if ($statusImage) {
+@@ -134,10 +112,13 @@
+                     $newFilename
+                 );
+ 
+-                $status->setImage($newFilename);
++                $user->setStatusImage($newFilename);
+             }
+ 
+-            $entityManager->persist($status);
++            // Cập nhật trạng thái người dùng
++            $user->setStatusText($statusText);
++
++            $entityManager->persist($user);
+             $entityManager->flush();
+ 
+             return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);
+@@ -145,4 +126,6 @@
+ 
+         return $this->redirectToRoute('user_profile', ['id' => $user->getId()]);
+     }
++
++
+ }
+Index: src/Entity/Status.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?php\n\nnamespace App\\Entity;\n\nuse Doctrine\\Common\\Collections\\Collection;\nuse Doctrine\\Common\\Collections\\ArrayCollection;\nuse App\\Repository\\StatusRepository;\nuse Doctrine\\DBAL\\Types\\Types;\nuse Doctrine\\ORM\\Mapping as ORM;\nuse Symfony\\Component\\Validator\\Constraints as Assert;\n\n/**\n * @ORM\\Entity(repositoryClass=StatusRepository::class)\n * @ORM\\Table(name=\"status\")\n */\n#[ORM\\Entity(repositoryClass: StatusRepository::class)]\n#[ORM\\Table(name: 'status')]\nclass Status\n{\n    #[ORM\\Id]\n    #[ORM\\GeneratedValue]\n    #[ORM\\Column(type: 'integer')]\n    private ?int $id = null;\n\n    #[ORM\\ManyToOne(targetEntity: User::class, inversedBy: 'statuses')]\n    #[ORM\\JoinColumn(nullable: false)]\n    private ?User $user = null;\n\n    #[ORM\\Column(type: 'datetime')]\n    #[Assert\\NotBlank]\n    private ?\\DateTimeInterface $createdAt = null;\n\n    #[ORM\\Column(type: 'datetime')]\n    #[Assert\\NotBlank]\n    private ?\\DateTimeInterface $updatedAt = null;\n\n    #[ORM\\Column(type: 'integer')]\n    #[Assert\\NotBlank]\n    private ?int $likes = 0;\n\n    #[ORM\\Column(type: 'text')]\n    #[Assert\\NotBlank]\n    private ?string $content = null;\n\n    #[ORM\\Column(type: 'string', length: 255, nullable: true)]\n    private ?string $image = null;\n\n    public function getId(): ?int\n    {\n        return $this->id;\n    }\n\n    public function getUser(): ?User\n    {\n        return $this->user;\n    }\n\n    public function setUser(?User $user): static\n    {\n        $this->user = $user;\n\n        return $this;\n    }\n\n    public function getCreatedAt(): ?\\DateTimeInterface\n    {\n        return $this->createdAt;\n    }\n\n    public function setCreatedAt(\\DateTimeInterface $createdAt): static\n    {\n        $this->createdAt = $createdAt;\n\n        return $this;\n    }\n\n    public function getUpdatedAt(): ?\\DateTimeInterface\n    {\n        return $this->updatedAt;\n    }\n\n    public function setUpdatedAt(\\DateTimeInterface $updatedAt): static\n    {\n        $this->updatedAt = $updatedAt;\n\n        return $this;\n    }\n\n    public function getLikes(): ?int\n    {\n        return $this->likes;\n    }\n\n    public function setLikes(int $likes): static\n    {\n        $this->likes = $likes;\n\n        return $this;\n    }\n\n    public function getContent(): ?string\n    {\n        return $this->content;\n    }\n\n    public function setContent(string $content): static\n    {\n        $this->content = $content;\n\n        return $this;\n    }\n\n    public function getImage(): ?string\n    {\n        return $this->image;\n    }\n\n    public function setImage(?string $image): static\n    {\n        $this->image = $image;\n\n        return $this;\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Entity/Status.php b/src/Entity/Status.php
+--- a/src/Entity/Status.php	(revision b17398b9cd72377688424d4338a8754807977b5b)
++++ b/src/Entity/Status.php	(date 1723450841341)
+@@ -2,8 +2,6 @@
+ 
+ namespace App\Entity;
+ 
+-use Doctrine\Common\Collections\Collection;
+-use Doctrine\Common\Collections\ArrayCollection;
+ use App\Repository\StatusRepository;
+ use Doctrine\DBAL\Types\Types;
+ use Doctrine\ORM\Mapping as ORM;
+@@ -11,38 +9,21 @@
+ 
+ /**
+  * @ORM\Entity(repositoryClass=StatusRepository::class)
+- * @ORM\Table(name="status")
+  */
+-#[ORM\Entity(repositoryClass: StatusRepository::class)]
+-#[ORM\Table(name: 'status')]
+ class Status
+ {
+-    #[ORM\Id]
+-    #[ORM\GeneratedValue]
+-    #[ORM\Column(type: 'integer')]
+     private ?int $id = null;
+ 
+-    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'statuses')]
+-    #[ORM\JoinColumn(nullable: false)]
+     private ?User $user = null;
+ 
+-    #[ORM\Column(type: 'datetime')]
+-    #[Assert\NotBlank]
+     private ?\DateTimeInterface $createdAt = null;
+ 
+-    #[ORM\Column(type: 'datetime')]
+-    #[Assert\NotBlank]
+     private ?\DateTimeInterface $updatedAt = null;
+ 
+-    #[ORM\Column(type: 'integer')]
+-    #[Assert\NotBlank]
+     private ?int $likes = 0;
+ 
+-    #[ORM\Column(type: 'text')]
+-    #[Assert\NotBlank]
+     private ?string $content = null;
+ 
+-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+     private ?string $image = null;
+ 
+     public function getId(): ?int
+Index: templates/user/profile.html.twig
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>User Profile</title>\n    <link rel=\"stylesheet\" href=\"{{ asset('css/profile.css') }}\">\n</head>\n<body>\n<div class=\"profile-container\">\n    <div class=\"cover-photo\">\n        {% if user.coverPhoto %}\n            <img src=\"{{ asset('uploads/cover_photos/' ~ user.coverPhoto) }}\" alt=\"Cover Photo\">\n        {% else %}\n            <div class=\"cover-photo-placeholder\">\n                <span>No Cover Photo</span>\n            </div>\n        {% endif %}\n    </div>\n    <div class=\"profile-content\">\n        <div class=\"profile-header\">\n            {% if user.profilePicture %}\n                <img class=\"profile-picture\" src=\"{{ asset('uploads/profile_pictures/' ~ user.profilePicture) }}\" alt=\"Profile Picture\">\n            {% else %}\n                <div class=\"profile-picture-placeholder\">\n                    <span>No Profile Picture</span>\n                </div>\n            {% endif %}\n            <h1>{{ user.name }}</h1>\n\n            <!-- Logout Button -->\n            <form action=\"{{ path('app_logout') }}\" method=\"post\" style=\"margin-top: 10px;\">\n                <button type=\"submit\" class=\"btn btn-secondary\">Logout</button>\n            </form>\n        </div>\n        <div class=\"about-section\">\n            <h2><strong>About</strong></h2>\n            <ul>\n                <li><strong>Email:</strong> {{ user.email }}</li>\n                <li><strong>Age:</strong> {{ user.age }}</li>\n                <li><strong>Phone:</strong> {{ user.phonenumber }}</li>\n                <li><strong>Relationship Status:</strong> {{ user.relationshipStatus }}</li>\n                <li><strong>Work:</strong> {{ user.work }}</li>\n                <li><strong>Education:</strong> {{ user.education }}</li>\n                <li><strong>Contact Info:</strong> {{ user.contactInfo }}</li>\n                <li><strong>About:</strong> {{ user.about }}</li>\n            </ul>\n        </div>\n        <a href=\"{{ path('user_edit', { id: user.id }) }}\" class=\"edit-profile\">Edit Profile</a>\n    </div>\n\n    <!-- Status Update Section -->\n    <div class=\"status-update\">\n        <h2><strong>Update Status</strong></h2>\n        <form action=\"{{ path('user_update_status', { id: user.id }) }}\" method=\"POST\" enctype=\"multipart/form-data\">\n            <label>\n                <textarea name=\"status_text\" rows=\"4\" placeholder=\"What's on your mind?\"></textarea>\n            </label>\n            <input type=\"file\" name=\"status_image\" accept=\"image/*\" />\n            <button type=\"submit\">Post Status</button>\n        </form>\n    </div>\n\n    <!-- Display User Status -->\n    <div class=\"user-status\">\n        {% for status in user.statuses %}\n            <div class=\"status-text\">\n                <p>{{ status.content }}</p>\n                {% if status.image %}\n                    <img src=\"{{ asset('uploads/status_images/' ~ status.image) }}\" alt=\"Status Image\">\n                {% endif %}\n                <small>Posted on: {{ status.createdAt|date('Y-m-d H:i:s') }}</small>\n            </div>\n        {% else %}\n            <p>No status updates yet.</p>\n        {% endfor %}\n    </div>\n</div>\n</body>\n</html>\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/templates/user/profile.html.twig b/templates/user/profile.html.twig
+--- a/templates/user/profile.html.twig	(revision b17398b9cd72377688424d4338a8754807977b5b)
++++ b/templates/user/profile.html.twig	(date 1723450836046)
+@@ -14,6 +14,10 @@
+         {% else %}
+             <div class="cover-photo-placeholder">
+                 <span>No Cover Photo</span>
++                <form action="{{ path('user_edit', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
++                    <input type="file" name="cover_photo" id="cover_photo" />
++                    <button type="submit">Update Cover Photo</button>
++                </form>
+             </div>
+         {% endif %}
+     </div>
+@@ -24,6 +28,10 @@
+             {% else %}
+                 <div class="profile-picture-placeholder">
+                     <span>No Profile Picture</span>
++                    <form action="{{ path('user_edit', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
++                        <input type="file" name="profile_picture" id="profile_picture" />
++                        <button type="submit">Update Profile Picture</button>
++                    </form>
+                 </div>
+             {% endif %}
+             <h1>{{ user.name }}</h1>
+@@ -53,9 +61,7 @@
+     <div class="status-update">
+         <h2><strong>Update Status</strong></h2>
+         <form action="{{ path('user_update_status', { id: user.id }) }}" method="POST" enctype="multipart/form-data">
+-            <label>
+-                <textarea name="status_text" rows="4" placeholder="What's on your mind?"></textarea>
+-            </label>
++            <textarea name="status_text" rows="4" placeholder="What's on your mind?">{{ user.statusText }}</textarea>
+             <input type="file" name="status_image" accept="image/*" />
+             <button type="submit">Post Status</button>
+         </form>
+@@ -63,17 +69,16 @@
+ 
+     <!-- Display User Status -->
+     <div class="user-status">
+-        {% for status in user.statuses %}
++        {% if user.statusText %}
+             <div class="status-text">
+-                <p>{{ status.content }}</p>
+-                {% if status.image %}
+-                    <img src="{{ asset('uploads/status_images/' ~ status.image) }}" alt="Status Image">
++                <p>{{ user.statusText }}</p>
++                {% if user.statusImage %}
++                    <img src="{{ asset('uploads/status_images/' ~ user.statusImage) }}" alt="Status Image">
+                 {% endif %}
+-                <small>Posted on: {{ status.createdAt|date('Y-m-d H:i:s') }}</small>
+             </div>
+         {% else %}
+-            <p>No status updates yet.</p>
+-        {% endfor %}
++            <p>No status update yet.</p>
++        {% endif %}
+     </div>
+ </div>
+ </body>
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"9adfd33b-0de4-4389-89c2-bdee033105b3\" name=\"Changes\" comment=\"\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/config/packages/security.yaml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/config/packages/security.yaml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/src/Controller/UserController.php\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/src/Controller/UserController.php\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/templates/user/profile.html.twig\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/templates/user/profile.html.twig\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"ComposerSettings\" synchronizationState=\"SYNCHRONIZE\">\n    <pharConfigPath>$PROJECT_DIR$/composer.json</pharConfigPath>\n    <execution />\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"PhpWorkspaceProjectConfiguration\" interpreter_name=\"/bin/php\">\n    <include_path>\n      <path value=\"$PROJECT_DIR$/vendor/symfony/cache-contracts\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpunit/php-code-coverage\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/routing\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/stopwatch\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/service-contracts\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/filesystem\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpunit/php-invoker\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/error-handler\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpunit/php-timer\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/yaml\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpunit/phpunit\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/finder\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpunit/php-text-template\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/polyfill-mbstring\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/runtime\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/dbal\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/var-dumper\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/doctrine-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpunit/php-file-iterator\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/config\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/collections\" />\n      <path value=\"$PROJECT_DIR$/vendor/webmozart/assert\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/event-dispatcher-contracts\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/inflector\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/polyfill-intl-grapheme\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/instantiator\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/cache\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/event-manager\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/deprecation-contracts\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/orm\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/event-dispatcher\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/persistence\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/polyfill-php83\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/doctrine-migrations-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/type\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/polyfill-intl-normalizer\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/cache\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/object-enumerator\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/console\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/lexer\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/var-exporter\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/deprecations\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/resource-operations\" />\n      <path value=\"$PROJECT_DIR$/vendor/phar-io/version\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/cli-parser\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/exporter\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/framework-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/migrations\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/lines-of-code\" />\n      <path value=\"$PROJECT_DIR$/vendor/phar-io/manifest\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/dependency-injection\" />\n      <path value=\"$PROJECT_DIR$/vendor/doctrine/sql-formatter\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/complexity\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/environment\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/code-unit\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/diff\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/object-reflector\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/version\" />\n      <path value=\"$PROJECT_DIR$/vendor/twig/twig\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/code-unit-reverse-lookup\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/global-state\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/recursion-context\" />\n      <path value=\"$PROJECT_DIR$/vendor/twig/extra-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/sebastian/comparator\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfonycasts/verify-email-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpdocumentor/reflection-common\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpdocumentor/type-resolver\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpdocumentor/reflection-docblock\" />\n      <path value=\"$PROJECT_DIR$/vendor/phpstan/phpdoc-parser\" />\n      <path value=\"$PROJECT_DIR$/vendor/egulias/email-validator\" />\n      <path value=\"$PROJECT_DIR$/vendor/theseer/tokenizer\" />\n      <path value=\"$PROJECT_DIR$/vendor/psr/link\" />\n      <path value=\"$PROJECT_DIR$/vendor/psr/clock\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/mime\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/validator\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/security-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/http-client-contracts\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/browser-kit\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/css-selector\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/property-access\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/dom-crawler\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/doctrine-bridge\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/monolog-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/polyfill-intl-icu\" />\n      <path value=\"$PROJECT_DIR$/vendor/myclabs/deep-copy\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/asset-mapper\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/doctrine-messenger\" />\n      <path value=\"$PROJECT_DIR$/vendor/nikic/php-parser\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/options-resolver\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/twig-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/phpunit-bridge\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/security-csrf\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/clock\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/mailer\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/security-core\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/security-http\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/expression-language\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/maker-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/polyfill-intl-idn\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/serializer\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/web-link\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/web-profiler-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/stimulus-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/ux-turbo\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/notifier\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/type-info\" />\n      <path value=\"$PROJECT_DIR$/vendor/composer\" />\n      <path value=\"$PROJECT_DIR$/vendor/monolog/monolog\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/debug-bundle\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/password-hasher\" />\n      <path value=\"$PROJECT_DIR$/vendor/psr/container\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/intl\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/property-info\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/process\" />\n      <path value=\"$PROJECT_DIR$/vendor/psr/cache\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/form\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/messenger\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/http-foundation\" />\n      <path value=\"$PROJECT_DIR$/vendor/psr/log\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/twig-bridge\" />\n      <path value=\"$PROJECT_DIR$/vendor/psr/event-dispatcher\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/http-client\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/http-kernel\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/monolog-bridge\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/string\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/translation-contracts\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/dotenv\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/translation\" />\n      <path value=\"$PROJECT_DIR$/vendor/masterminds/html5\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/flex\" />\n      <path value=\"$PROJECT_DIR$/vendor/symfony/asset\" />\n    </include_path>\n  </component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;customColor&quot;: &quot;&quot;,\n  &quot;associatedIndex&quot;: 4\n}</component>\n  <component name=\"ProjectId\" id=\"2kP7ekdZaJu6JoQPDBpsgQmJrD7\" />\n  <component name=\"ProjectLevelVcsManager\">\n    <ConfirmationsSetting value=\"1\" id=\"Add\" />\n  </component>\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\">{\n  &quot;keyToString&quot;: {\n    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\n    &quot;git-widget-placeholder&quot;: &quot;main&quot;,\n    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,\n    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,\n    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,\n    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,\n    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,\n    &quot;php.override.implement.member.chooser.php.doc&quot;: &quot;NONE&quot;,\n    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;\n  }\n}</component>\n  <component name=\"RunManager\">\n    <configuration name=\"Main\" type=\"PHPUnitRunConfigurationType\" factoryName=\"PHPUnit\">\n      <TestRunner configuration_file=\"$PROJECT_DIR$/phpunit.xml.dist\" scope=\"XML\" use_alternative_configuration_file=\"true\" />\n      <method v=\"2\" />\n    </configuration>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PS-241.18034.69\" />\n        <option value=\"bundled-php-predefined-ba97393d7c68-48a1a656d44e-com.jetbrains.php.sharedIndexes-PS-241.18034.69\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"9adfd33b-0de4-4389-89c2-bdee033105b3\" name=\"Changes\" comment=\"\" />\n      <created>1723173456442</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1723173456442</updated>\n      <workItem from=\"1723173457174\" duration=\"17153000\" />\n      <workItem from=\"1723259855946\" duration=\"645000\" />\n      <workItem from=\"1723425297564\" duration=\"2608000\" />\n    </task>\n    <servers />\n  </component>\n  <component name=\"TypeScriptGeneratedFilesManager\">\n    <option name=\"version\" value=\"3\" />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision b17398b9cd72377688424d4338a8754807977b5b)
++++ b/.idea/workspace.xml	(date 1723450847880)
+@@ -5,10 +5,16 @@
+   </component>
+   <component name="ChangeListManager">
+     <list default="true" id="9adfd33b-0de4-4389-89c2-bdee033105b3" name="Changes" comment="">
++      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/config/packages/security.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/packages/security.yaml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/src/Controller/UserController.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Controller/UserController.php" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/templates/user/profile.html.twig" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/profile.html.twig" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/composer.json" beforeDir="false" afterPath="$PROJECT_DIR$/composer.json" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/composer.lock" beforeDir="false" afterPath="$PROJECT_DIR$/composer.lock" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/config/bundles.php" beforeDir="false" afterPath="$PROJECT_DIR$/config/bundles.php" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/config/routes.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/routes.yaml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/config/services.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/services.yaml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/src/Entity/User.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Entity/User.php" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/symfony.lock" beforeDir="false" afterPath="$PROJECT_DIR$/symfony.lock" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -207,7 +213,6 @@
+       <updated>1723173456442</updated>
+       <workItem from="1723173457174" duration="17153000" />
+       <workItem from="1723259855946" duration="645000" />
+-      <workItem from="1723425297564" duration="2608000" />
+     </task>
+     <servers />
+   </component>
+Index: migrations/Version20240811045733.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/migrations/Version20240811045733.php b/migrations/Version20240811045733.php
+new file mode 100644
+--- /dev/null	(date 1723450791058)
++++ b/migrations/Version20240811045733.php	(date 1723450791058)
+@@ -0,0 +1,31 @@
++<?php
++
++declare(strict_types=1);
++
++namespace DoctrineMigrations;
++
++use Doctrine\DBAL\Schema\Schema;
++use Doctrine\Migrations\AbstractMigration;
++
++/**
++ * Auto-generated Migration: Please modify to your needs!
++ */
++final class Version20240811045733 extends AbstractMigration
++{
++    public function getDescription(): string
++    {
++        return '';
++    }
++
++    public function up(Schema $schema): void
++    {
++        // this up() migration is auto-generated, please modify it to your needs
++        $this->addSql('DROP TABLE status');
++    }
++
++    public function down(Schema $schema): void
++    {
++        // this down() migration is auto-generated, please modify it to your needs
++        $this->addSql('CREATE TABLE status (id INT AUTO_INCREMENT NOT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, likes INT NOT NULL, content LONGTEXT CHARACTER SET utf8mb4 NOT NULL COLLATE `utf8mb4_unicode_ci`, image LONGTEXT CHARACTER SET utf8mb4 DEFAULT NULL COLLATE `utf8mb4_unicode_ci`, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB COMMENT = \'\' ');
++    }
++}
+Index: migrations/Version20240811044928.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/migrations/Version20240811044928.php b/migrations/Version20240811044928.php
+new file mode 100644
+--- /dev/null	(date 1723450791058)
++++ b/migrations/Version20240811044928.php	(date 1723450791058)
+@@ -0,0 +1,31 @@
++<?php
++
++declare(strict_types=1);
++
++namespace DoctrineMigrations;
++
++use Doctrine\DBAL\Schema\Schema;
++use Doctrine\Migrations\AbstractMigration;
++
++/**
++ * Auto-generated Migration: Please modify to your needs!
++ */
++final class Version20240811044928 extends AbstractMigration
++{
++    public function getDescription(): string
++    {
++        return '';
++    }
++
++    public function up(Schema $schema): void
++    {
++        // this up() migration is auto-generated, please modify it to your needs
++        $this->addSql('CREATE TABLE status (id INT AUTO_INCREMENT NOT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, likes INT NOT NULL, content LONGTEXT NOT NULL, image LONGTEXT DEFAULT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
++    }
++
++    public function down(Schema $schema): void
++    {
++        // this down() migration is auto-generated, please modify it to your needs
++        $this->addSql('DROP TABLE status');
++    }
++}
