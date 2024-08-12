@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use DateTime;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use App\Entity\Status;
 use App\Entity\User;
@@ -77,7 +78,7 @@ class UserController extends AbstractController
                 $user->setCoverPhoto($newFilename);
             }
 
-            $user->setUpdatedAt(new \DateTime());
+            $user->setUpdatedAt(new DateTime());
 
             // Lưu thay đổi vào cơ sở dữ liệu
             $entityManager->persist($user);
@@ -119,8 +120,8 @@ class UserController extends AbstractController
             $status = new Status();
             $status->setUser($user);
             $status->setContent($statusText);
-            $status->setCreatedAt(new \DateTime());
-            $status->setUpdatedAt(new \DateTime());
+            $status->setCreatedAt(new DateTime());
+            $status->setUpdatedAt(new DateTime());
 
             /** @var UploadedFile $statusImage */
             $statusImage = $request->files->get('status_image');

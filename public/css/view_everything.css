@@ -1,0 +1,46 @@
+.status-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.status-item {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 35px;
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.status-profile {
+    margin-right: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-picture {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 5px;
+}
+
+.profile-name {
+    font-weight: bold;
+    text-align: center;
+}
+
+.status-content {
+    flex: 1;
+}
+
+.status-image {
+    max-width: 10%; /* Đảm bảo hình ảnh không vượt quá chiều rộng của phần tử chứa */
+    height: auto;    /* Giữ tỷ lệ khung hình của hình ảnh */
+    border-radius: 8px;
+    margin-top: 10px;
+}
+

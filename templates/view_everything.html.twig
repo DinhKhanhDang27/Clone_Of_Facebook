@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Everything</title>
+    <link rel="stylesheet" href="{{ asset('css/view_everything.css') }}">
+</head>
+<body style="background-color: #f0f0f0; padding: 20px;">
+<div class="logout-container">
+    <form action="{{ path('app_logout') }}" method="post">
+        <button type="submit" class="btn-logout">Logout</button>
+    </form>
+</div>
+<div class="status-container">
+    {% for status in statuses %}
+        <div class="status-item">
+            <div class="status-profile">
+                {% if status.user.profilePicture %}
+                    <img class="profile-picture" src="{{ asset('uploads/profile_pictures/' ~ status.user.profilePicture) }}" alt="Profile Picture">
+                {% else %}
+                    <div class="profile-picture-placeholder">No Profile Picture</div>
+                {% endif %}
+                <a href="{{ path('user_profile', { id: status.user.id }) }}" class="btn-profile">View Profile</a>
+                <div class="profile-name">{{ status.user.name }}</div>
+            </div>
+            <div class="status-content">
+                <p>{{ status.content }}</p>
+                {% if status.image %}
+                    <img class="status-image" src="{{ asset('uploads/status_images/' ~ status.image) }}" alt="Status Image">
+                {% endif %}
+                <small>Posted on: {{ status.createdAt|date('Y-m-d H:i:s') }}</small>
+            </div>
+        </div>
+    {% else %}
+        <p>No statuses available.</p>
+    {% endfor %}
+</div>
+</body>
+</html>

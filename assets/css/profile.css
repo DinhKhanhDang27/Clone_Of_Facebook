@@ -186,3 +186,19 @@ a:hover {
     height: auto;
     margin-top: 10px;
 }
+.view-everything {
+    display: inline-block;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-size: 16px;
+    text-decoration: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.view-everything:hover {
+    background-color: #0056b3;
+}
